@@ -1,5 +1,7 @@
 name: APK stop#app
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,7 +14,15 @@ jobs:
         with: {gradle-version: "8.9"}
       - run: gradle assembleDebug
         working-directory: stop-app
+      - run: cp stop-app/app/build/outputs/apk/debug/app-debug.apk stop-app.apk
       - uses: actions/upload-artifact@v4
         with:
           name: stop-app-apk
-          path: stop-app/app/build/outputs/apk/debug/app-debug.apk
+          path: stop-app.apk
+      # Lien de téléchargement direct (toujours la dernière version)
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: stop#app (dernière version)
+          make_latest: true
+          files: stop-app.apk
