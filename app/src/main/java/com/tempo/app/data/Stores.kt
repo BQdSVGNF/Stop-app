@@ -31,12 +31,34 @@ object TaskStore {
         }
     }
 
-    private fun save() {
+    private fun persist() {
         val f = file ?: return
         val array = JSONArray()
         tasks.forEach { array.put(it.toJson()) }
         runCatching { f.writeText(array.toString()) }
+    }
+
+    private fun save() {
+        persist()
         appContext?.let { Scheduler.rescheduleAll(it) }
+    }
+
+    /**
+     * Les tâches en pause dont l'heure de reprise est passée redeviennent actives
+     * toutes seules (la note « où j'en étais » est gardée).
+     */
+    fun resumeDue(now: Long = System.currentTimeMillis()): Boolean {
+        var changed = false
+        for (i in tasks.indices) {
+            val t = tasks[i]
+            val r = t.resumeAt
+            if (t.isPaused && r != null && r <= now) {
+                tasks[i] = t.resumed()
+                changed = true
+            }
+        }
+        if (changed) persist()
+        return changed
     }
 
     fun upsert(task: Task) {
@@ -68,9 +90,10 @@ object AppSettings {
     private val _encEnabled = mutableStateOf(true)
     private val _encHour = mutableStateOf(8)
     private val _encMinute = mutableStateOf(0)
-    private val _style = mutableStateOf("GRADIENT")
+    private val _style = mutableStateOf("LIQUID_GLASS")
     private val _palette = mutableStateOf("INDIGO")
     private val _appearance = mutableStateOf("system")
+    private val _motion3d = mutableStateOf(true)
 
     fun init(context: Context) {
         if (::prefs.isInitialized) return
@@ -80,9 +103,10 @@ object AppSettings {
         _encEnabled.value = prefs.getBoolean("encEnabled", true)
         _encHour.value = prefs.getInt("encHour", 8)
         _encMinute.value = prefs.getInt("encMinute", 0)
-        _style.value = prefs.getString("style", "GRADIENT") ?: "GRADIENT"
+        _style.value = prefs.getString("style", "LIQUID_GLASS") ?: "LIQUID_GLASS"
         _palette.value = prefs.getString("palette", "INDIGO") ?: "INDIGO"
         _appearance.value = prefs.getString("appearance", "system") ?: "system"
+        _motion3d.value = prefs.getBoolean("motion3d", true)
     }
 
     var onboarded: Boolean
@@ -109,4 +133,7 @@ object AppSettings {
     var appearance: String
         get() = _appearance.value
         set(v) { _appearance.value = v; prefs.edit().putString("appearance", v).apply() }
+    var motion3d: Boolean
+        get() = _motion3d.value
+        set(v) { _motion3d.value = v; prefs.edit().putBoolean("motion3d", v).apply() }
 }

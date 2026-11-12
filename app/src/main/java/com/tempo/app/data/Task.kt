@@ -59,7 +59,8 @@ data class Task(
     fun paused(note: String, resumeAt: Long?): Task =
         copy(pausedAt = System.currentTimeMillis(), pauseNote = note, resumeAt = resumeAt, isLater = false)
 
-    fun resumed(): Task = copy(pausedAt = null, resumeAt = null, pauseNote = "")
+    /** Reprise : la note « où j'en étais » reste visible jusqu'à ce que la tâche soit faite. */
+    fun resumed(): Task = copy(pausedAt = null, resumeAt = null)
 
     fun belongsToToday(): Boolean {
         val today = LocalDate.now()

@@ -2,7 +2,9 @@ package com.tempo.app.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.content.Context
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -27,6 +29,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AlarmOn
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.BatteryChargingFull
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocalFireDepartment
@@ -39,7 +44,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -65,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.core.content.IntentCompat
 import com.tempo.app.data.AppSettings
 import com.tempo.app.data.Quotes
 import com.tempo.app.data.Stats
@@ -97,9 +102,13 @@ fun SettingsScreen() {
     }
     val canNotify = remember(refresh) { Notifier.canNotify(context) }
     val exact = remember(refresh) { Scheduler.canScheduleExact(context) }
+    val batteryFree = remember(refresh) {
+        context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) ?: true
+    }
+    var testResult by remember { mutableStateOf<Boolean?>(null) }
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 40.dp)) {
-        Text("Réglages", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 20.dp, bottom = 190.dp)) {
+        Text("Réglages", fontSize = 32.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
         Spacer(Modifier.height(16.dp))
 
         // Profil
@@ -142,7 +151,12 @@ fun SettingsScreen() {
                 }
                 Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Divider()
+            SettingRow(Icons.Rounded.AutoAwesome, "Effet 3D et animations") {
+                Switch(AppSettings.motion3d, { AppSettings.motion3d = it })
+            }
         }
+        Footer("Le décor suit l'inclinaison de ton téléphone. Désactive-le pour économiser un peu de batterie.")
 
         Label("Statistiques")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -167,26 +181,60 @@ fun SettingsScreen() {
         }
         Footer("Aujourd'hui : « ${Quotes.today} »")
 
-        Label("Système")
+        Label("Fiabilité des rappels")
         Group {
             SettingRow(Icons.Rounded.Notifications, "Notifications") {
                 if (canNotify) Status("Activées", true) else Action("Activer") {
-                    context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+                    context.openSettings(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                    )
                 }
             }
             if (Build.VERSION.SDK_INT >= 31) {
                 Divider()
                 SettingRow(Icons.Rounded.AlarmOn, "Rappels à l'heure exacte") {
                     if (exact) Status("Activés", true) else Action("Autoriser") {
-                        context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")))
+                        context.openSettings(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")))
                     }
                 }
             }
+            Divider()
+            SettingRow(Icons.Rounded.BatteryChargingFull, "Batterie sans restriction") {
+                if (batteryFree) Status("Oui", true) else Action("Autoriser") {
+                    context.openSettings(
+                        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}")),
+                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                    )
+                }
+            }
+            if (Build.VERSION.SDK_INT >= 30) {
+                Divider()
+                SettingRow(Icons.Rounded.Schedule, "Ne jamais mettre en veille") {
+                    Action("Régler") {
+                        val details = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+                        val unused = runCatching { IntentCompat.createManageUnusedAppRestrictionsIntent(context, context.packageName) }.getOrNull()
+                        context.openSettings(unused ?: details, details)
+                    }
+                }
+            }
+            Divider()
+            Row(
+                Modifier.fillMaxWidth().clickable { testResult = Scheduler.sendTest(context) }.padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Tester les rappels", Modifier.weight(1f), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+            }
         }
-        Footer("Les rappels sont gérés directement par ton téléphone : ils fonctionnent même sans Internet. Autorise « l'heure exacte » pour qu'ils arrivent pile à l'heure.")
+        when (testResult) {
+            true -> Footer("✅ Une notification vient de partir. Une 2ᵉ arrivera dans 1 minute : tu peux fermer l'app pour vérifier.")
+            false -> Footer("⚠️ Les notifications sont bloquées. Appuie sur « Activer » ci-dessus.")
+            null -> Footer("Tout est géré par ton téléphone, même sans Internet et app fermée. Tempo se reprogramme tout seul chaque nuit, après un redémarrage et après une mise à jour : aucune action de ta part.")
+        }
 
         Spacer(Modifier.height(24.dp))
-        Text("Tempo 1.0 · garde le rythme, un jour à la fois.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Text("Tempo 1.1 · garde le rythme, un jour à la fois.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 
@@ -200,9 +248,17 @@ fun SettingsScreen() {
     }
 }
 
+/** Ouvre un écran des réglages Android, avec un plan B si le téléphone ne le propose pas. */
+private fun Context.openSettings(intent: Intent, fallback: Intent? = null) {
+    runCatching { startActivity(intent) }.onFailure {
+        val alt = fallback ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+        runCatching { startActivity(alt) }
+    }
+}
+
 @Composable
 private fun Group(content: @Composable () -> Unit) {
-    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+    Glass(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
         Column { content() }
     }
 }
@@ -246,7 +302,7 @@ private fun Action(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun StatTile(value: Int, label: String, icon: ImageVector, color: Color, modifier: Modifier) {
-    Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, modifier = modifier) {
+    Glass(modifier, shape = RoundedCornerShape(20.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(icon, null, tint = color)
             Text("$value", fontSize = 28.sp, fontWeight = FontWeight.Bold)
@@ -261,7 +317,7 @@ private fun StatTile(value: Int, label: String, icon: ImageVector, color: Color,
 fun ThemeScreen(onBack: () -> Unit) {
     val palette = currentPalette()
     val style = currentStyle()
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 40.dp)) {
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 190.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Retour") }
             Text("Thème", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -271,7 +327,7 @@ fun ThemeScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.height(26.dp))
         Text("Style", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("Le motif de ta carte du jour", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Le décor de toute l'app, appliqué en direct", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
         ThemeStyle.entries.chunked(2).forEach { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(bottom = 12.dp)) {

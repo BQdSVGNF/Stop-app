@@ -1,8 +1,8 @@
 package com.tempo.app.ui
 
-import android.graphics.Paint
-import android.graphics.Typeface
+import android.content.Intent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -10,45 +10,63 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.WbSunny
+import androidx.compose.material.icons.rounded.PauseCircleOutline
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.WbTwilight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tempo.app.data.AppSettings
@@ -57,260 +75,178 @@ import com.tempo.app.data.Stats
 import com.tempo.app.data.Task
 import com.tempo.app.data.TaskStore
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.cos
-import kotlin.math.sin
-
-// ============================================================================
-// 1. SYSTÈME DE THÈME & DESIGN APPLE MODERNISÉ
-// ============================================================================
-
-enum class ThemeStyle(val label: String, val isLight: Boolean = false, val mono: Boolean = false) {
-    LIQUID_GLASS("Verre Liquide"),
-    GRADIENT("Dégradé Profond"),
-    HALFTONE("Trame", isLight = true),
-    BLUEPRINT("Blueprint futuriste", mono = true),
-    CONTOUR("Topographie", mono = false),
-    ASCII("ASCII Tech", mono = true);
-
-    val fontFamily: FontFamily get() = if (mono) FontFamily.Monospace else FontFamily.Default
-
-    companion object {
-        fun from(name: String) = entries.firstOrNull { it.name == name } ?: LIQUID_GLASS
-    }
-}
-
-enum class ThemePalette(val label: String, val colors: List<Color>, val dark: Color, accentOverride: Color? = null) {
-    INDIGO("Indigo Apple", listOf(Color(0xFF5E5CE6), Color(0xFFAF52DE), Color(0xFFFF2D55)), Color(0xFF0F0E17)),
-    SUNSET("Titanium Solaire", listOf(Color(0xFFFF9500), Color(0xFFFF2D55), Color(0xFFBF5AF2)), Color(0xFF1C1216)),
-    OCEAN("Océan Profond", listOf(Color(0xFF0A84FF), Color(0xFF5AC8FA), Color(0xFF30B0C7)), Color(0xFF0A101D)),
-    FOREST("Minéral Vert", listOf(Color(0xFF30D158), Color(0xFF64D2FF), Color(0xFF5856D6)), Color(0xFF0E1A14)),
-    ROSE("Rose Quartz", listOf(Color(0xFFFF375F), Color(0xFFFF6482), Color(0xFFAF52DE)), Color(0xFF1D0F16)),
-    AURORA("Cyber Aurore", listOf(Color(0xFFBF5AF2), Color(0xFF32D74B), Color(0xFF64D2FF)), Color(0xFF0B0B16)),
-    MONO("Onyx Monolithique", listOf(Color(0xFF8E8E93), Color(0xFFC7C7CC), Color(0xFF3A3A3C)), Color(0xFF080808), Color(0xFFEBEBF5));
-
-    val accent: Color = accentOverride ?: colors[0]
-
-    companion object {
-        fun from(name: String) = entries.firstOrNull { it.name == name } ?: INDIGO
-    }
-}
-
-val TaskColors = linkedMapOf(
-    "indigo" to Color(0xFF5E5CE6), "blue" to Color(0xFF0A84FF), "teal" to Color(0xFF30B0C7),
-    "mint" to Color(0xFF32D74B), "green" to Color(0xFF34C759), "yellow" to Color(0xFFFFD60A),
-    "orange" to Color(0xFFFF9500), "red" to Color(0xFFFF453A), "pink" to Color(0xFFFF375F),
-    "purple" to Color(0xFFAF52DE),
-)
-
-fun taskColor(name: String): Color = TaskColors[name] ?: Color(0xFF5E5CE6)
-val Orange = Color(0xFFFF9500)
-
-@Composable
-fun currentPalette(): ThemePalette = ThemePalette.from(AppSettings.palette)
-
-@Composable
-fun currentStyle(): ThemeStyle = ThemeStyle.from(AppSettings.style)
-
-@Composable
-fun TempoTheme(content: @Composable () -> Unit) {
-    val palette = currentPalette()
-    val dark = when (AppSettings.appearance) {
-        "light" -> false
-        "dark" -> true
-        else -> isSystemInDarkTheme()
-    }
-    val scheme = if (dark) darkColorScheme(
-        primary = palette.accent, secondary = palette.colors[1], tertiary = palette.colors[2],
-        background = Color(0xFF000000), surface = Color(0xFF1C1C1E).copy(alpha = 0.85f),
-        surfaceVariant = Color(0xFF2C2C2E), onBackground = Color.White, onSurface = Color.White,
-        onSurfaceVariant = Color(0xFF98989F), outline = Color(0xFF3A3A3C), onPrimary = Color.White,
-    ) else lightColorScheme(
-        primary = palette.accent, secondary = palette.colors[1], tertiary = palette.colors[2],
-        background = Color(0xFFF2F2F7), surface = Color.White.copy(alpha = 0.92f),
-        surfaceVariant = Color(0xFFE5E5EA), onBackground = Color.Black, onSurface = Color.Black,
-        onSurfaceVariant = Color(0xFF8E8E93), outline = Color(0xFFD1D1D6), onPrimary = Color.White,
-    )
-    MaterialTheme(colorScheme = scheme, content = content)
-}
-
-@Composable
-fun ThemeBackground(style: ThemeStyle, palette: ThemePalette, modifier: Modifier = Modifier) {
-    val c1 = palette.colors[0]
-    val c2 = palette.colors[1]
-    val c3 = palette.colors[2]
-    val base = palette.dark
-
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        when (style) {
-            ThemeStyle.LIQUID_GLASS -> {
-                drawRect(Brush.linearGradient(listOf(base, c1.copy(alpha = 0.45f), c2.copy(alpha = 0.25f)), start = Offset(0f, 0f), end = Offset(w, h)))
-                drawCircle(c1.copy(alpha = 0.35f), radius = w * 0.45f, center = Offset(w * 0.15f, h * 0.2f))
-                drawCircle(c2.copy(alpha = 0.25f), radius = w * 0.55f, center = Offset(w * 0.85f, h * 0.85f))
-            }
-            ThemeStyle.GRADIENT -> {
-                drawRect(Brush.linearGradient(listOf(c1, c2, c3), start = Offset(0f, 0f), end = Offset(w, h)))
-            }
-            ThemeStyle.HALFTONE -> {
-                drawRect(Color(0xFFF8F8FA))
-                val radius = 3.5f
-                val spacing = 14f
-                var y = spacing / 2
-                while (y < h) {
-                    var x = spacing / 2
-                    while (x < w) {
-                        drawCircle(c1.copy(alpha = 0.15f), radius, center = Offset(x, y))
-                        x += spacing
-                    }
-                    y += spacing
-                }
-            }
-            ThemeStyle.BLUEPRINT -> {
-                drawRect(Color(0xFF0D1B2A))
-                val grid = 28f
-                var x = 0f
-                while (x < w) {
-                    drawLine(Color.White.copy(alpha = 0.1f), Offset(x, 0f), Offset(x, h), strokeWidth = 1f)
-                    x += grid
-                }
-                var y = 0f
-                while (y < h) {
-                    drawLine(Color.White.copy(alpha = 0.1f), Offset(0f, y), Offset(w, y), strokeWidth = 1f)
-                    y += grid
-                }
-            }
-            ThemeStyle.CONTOUR -> {
-                drawRect(base)
-                val path = Path()
-                for (i in 1..6) {
-                    path.reset()
-                    val startY = h * (i / 7f)
-                    path.moveTo(0f, startY)
-                    var x = 0f
-                    while (x <= w) {
-                        val y = startY + sin(x * 0.025f + i) * 25f + cos(x * 0.012f) * 12f
-                        path.lineTo(x, y)
-                        x += 8f
-                    }
-                    drawPath(path, c1.copy(alpha = 0.25f), style = Stroke(width = 2.5f))
-                }
-            }
-            ThemeStyle.ASCII -> {
-                drawRect(Color(0xFF0A0A0A))
-                val paint = Paint().apply {
-                    color = c1.toArgb()
-                    textSize = 22f
-                    typeface = Typeface.MONOSPACE
-                }
-                val chars = arrayOf("•", "○", "+", "x", "*", "#")
-                val step = 26f
-                var y = step
-                while (y < h) {
-                    var x = step
-                    while (x < w) {
-                        val char = chars[((x + y) / step).toInt() % chars.size]
-                        drawContext.canvas.nativeCanvas.drawText(char, x, y, paint)
-                        x += step
-                    }
-                    y += step
-                }
-            }
-        }
-    }
-}
-
-// ============================================================================
-// 2. MICRO-INTERACTIONS & FLUIDITÉ (EFFET RESSORT APPLE)
-// ============================================================================
-
-fun Modifier.appleSpringPress(onClick: () -> Unit): Modifier = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "applePress"
-    )
-    this
-        .scale(scale)
-        .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
-}
-
-// ============================================================================
-// 3. COMPOSANTS DE L'ÉCRAN AUJOURD'HUI & CARTES
-// ============================================================================
 
 @Composable
 fun TodayScreen(onEdit: (Task) -> Unit, onPause: (Task) -> Unit) {
-    val tasks = TaskStore.tasks.toList().filter { it.belongsToToday() }.sortedBy { it.sortMinutes }
-    val streak = Stats.streak(TaskStore.tasks)
+    val all = TaskStore.tasks.toList()
+    val today = all.filter { it.belongsToToday() }.sortedBy { it.sortMinutes }
+    val pending = today.filter { !it.isDone() }
+    val done = today.filter { it.isDone() }
+    val paused = all.filter { it.isPaused }.sortedBy { it.pausedAt }
+    val nowMinutes = LocalTime.now().let { it.hour * 60 + it.minute }
+    val next = pending.firstOrNull { it.reminderEnabled && it.sortMinutes > nowMinutes }
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 140.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 190.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        val name = AppSettings.userName.trim()
-                        val greeting = if (name.isNotEmpty()) "Bonjour, $name" else "Aujourd'hui"
-                        Text(greeting, fontSize = 34.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
-                        Text(
-                            LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRENCH)).replaceFirstChar { it.uppercase() },
-                            fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (streak > 0) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
-                        ) {
-                            Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Rounded.LocalFireDepartment, null, tint = Orange, modifier = Modifier.size(20.dp))
-                                Text("$streak", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            }
-                        }
-                    }
-                }
-                EncouragementCard()
-            }
-        }
+        item { Header(Stats.streak(all)) }
+        item { EncouragementCard() }
+        item { ProgressCard(done.size, today.size, next) }
+        if (today.isEmpty() && paused.isEmpty()) item { EmptyState() }
+        if (pending.isNotEmpty()) item { TaskGroup("À faire", pending, onEdit, onPause) }
+        if (paused.isNotEmpty()) item { PausedGroup(paused, onEdit) }
+        if (done.isNotEmpty()) item { TaskGroup("Terminées", done, onEdit, null) }
+    }
+}
 
-        item {
-            Text("Tâches du jour", fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
+@Composable
+private fun Header(streak: Int) {
+    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRENCH)).uppercase(Locale.FRENCH)
+    val base = when (LocalTime.now().hour) {
+        in 5..11 -> "Bonjour"
+        in 12..17 -> "Bon après-midi"
+        else -> "Bonsoir"
+    }
+    val name = AppSettings.userName.trim()
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
+            Text(if (name.isEmpty()) base else "$base, $name", fontSize = 32.sp, fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp, lineHeight = 36.sp)
         }
-
-        if (tasks.isEmpty()) {
-            item {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
-                ) {
-                    Column(Modifier.padding(36.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("✨", fontSize = 40.sp)
-                        Text("Tout est accompli pour l'instant", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                        Text("Profitez de votre journée ou planifiez de nouvelles ambitions.", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, fontSize = 14.sp)
-                    }
+        if (streak > 0) {
+            Glass(shape = RoundedCornerShape(18.dp)) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Rounded.LocalFireDepartment, null, tint = Orange, modifier = Modifier.size(20.dp))
+                    Text("$streak", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
-        } else {
-            item {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
-                ) {
-                    Column {
-                        tasks.forEachIndexed { i, task ->
-                            TaskRow(task, onClick = { onEdit(task) }, onPause = { onPause(task) })
-                            if (i < tasks.lastIndex) HorizontalDivider(Modifier.padding(start = 72.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                        }
+        }
+    }
+}
+
+/** La carte « élan du jour », en relief : elle pivote quand on incline le téléphone. */
+@Composable
+fun EncouragementCard(styleOverride: ThemeStyle? = null) {
+    val style = styleOverride ?: currentStyle()
+    val palette = currentPalette()
+    val ink = if (style.isLight) palette.dark else Color.White
+    val context = LocalContext.current
+    val quote = Quotes.today
+    val tilt = LocalTilt.current
+    val phase = rememberThemePhase(style)
+    val shape = RoundedCornerShape(28.dp)
+
+    Box(
+        Modifier.fillMaxWidth()
+            .graphicsLayer {
+                val t = tilt.value
+                rotationY = t.x * 9f
+                rotationX = -t.y * 7f
+                cameraDistance = 14f * density
+            }
+            .shadow(22.dp, shape, ambientColor = palette.colors[0], spotColor = palette.colors[0])
+            .clip(shape)
+            .heightIn(min = 172.dp),
+    ) {
+        ThemeBackground(style, palette, Modifier.matchParentSize(), phase = { phase.value })
+        // Reflet lumineux qui glisse avec l'inclinaison
+        Canvas(Modifier.matchParentSize()) {
+            val t = tilt.value
+            val c = Offset(size.width * (0.3f + t.x * 0.5f), size.height * (0.05f + t.y * 0.6f))
+            drawRect(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.26f), Color.Transparent), c, size.width * 0.75f))
+        }
+        Box(
+            Modifier.matchParentSize().border(
+                1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.55f), Color.White.copy(alpha = 0.05f))), shape,
+            ),
+        )
+        // Le texte flotte légèrement au-dessus du décor (parallaxe)
+        Column(
+            Modifier
+                .graphicsLayer {
+                    val t = tilt.value
+                    translationX = -t.x * 6.dp.toPx()
+                    translationY = -t.y * 4.dp.toPx()
+                }
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.AutoAwesome, null, tint = ink.copy(alpha = 0.9f), modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Ton élan du jour", color = ink.copy(alpha = 0.9f), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier.size(34.dp).clip(CircleShape).background(ink.copy(alpha = 0.14f))
+                        .clickable {
+                            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, quote)
+                            context.startActivity(Intent.createChooser(send, null))
+                        },
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Rounded.Share, "Partager", tint = ink, modifier = Modifier.size(18.dp)) }
+            }
+            Text(
+                quote,
+                color = ink,
+                fontSize = 21.sp,
+                lineHeight = 27.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = style.fontFamily,
+                style = TextStyle(shadow = if (style.isLight) null else Shadow(Color.Black.copy(alpha = 0.35f), Offset(0f, 2f), 12f)),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressCard(done: Int, total: Int, next: Task?) {
+    val palette = currentPalette()
+    val progress = if (total == 0) 0f else done.toFloat() / total
+    val animated by animateFloatAsState(progress, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessLow), label = "progress")
+    val message = when {
+        total == 0 -> "Journée libre"
+        done == total -> "Journée parfaite ! 🎉"
+        progress >= 0.5f -> "Tu y es presque"
+        done > 0 -> "Bien lancé"
+        else -> "C'est parti"
+    }
+    Glass(Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            Box(Modifier.size(76.dp), contentAlignment = Alignment.Center) {
+                val track = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
+                Canvas(Modifier.matchParentSize()) {
+                    val stroke = 10.dp.toPx()
+                    val inset = stroke / 2
+                    val arcSize = Size(size.width - stroke, size.height - stroke)
+                    val sweep = Brush.sweepGradient(listOf(palette.colors[0], palette.colors[1], palette.colors[2], palette.colors[0]))
+                    drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                    // Halo lumineux sous l'anneau
+                    drawArc(sweep, -90f, 360f * animated, false, Offset(inset, inset), arcSize, alpha = 0.25f,
+                        style = Stroke(stroke * 2.2f, cap = StrokeCap.Round))
+                    drawArc(sweep, -90f, 360f * animated, false, Offset(inset, inset), arcSize,
+                        style = Stroke(stroke, cap = StrokeCap.Round))
+                }
+                Text("${(progress * 100).toInt()}%", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(message, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+                Text("$done sur $total terminée${if (done > 1) "s" else ""}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                if (next != null) {
+                    Row(
+                        Modifier.background(palette.accent.copy(alpha = 0.14f), CircleShape).padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Rounded.Notifications, null, tint = palette.accent, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("${next.reminderText} · ${next.title}", color = palette.accent, fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -319,27 +255,32 @@ fun TodayScreen(onEdit: (Task) -> Unit, onPause: (Task) -> Unit) {
 }
 
 @Composable
-fun EncouragementCard() {
-    val palette = currentPalette()
-    val style = currentStyle()
-    val quote = Quotes.today
+private fun EmptyState() {
+    Glass(Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp)) {
+        Column(Modifier.fillMaxWidth().padding(vertical = 36.dp, horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Rounded.WbTwilight, null, tint = Orange, modifier = Modifier.size(46.dp))
+            Text("Rien de prévu aujourd'hui", fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
+            Text("Appuie sur + pour ajouter ta première tâche.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+        }
+    }
+}
 
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(28.dp)),
-        shadowElevation = 6.dp
-    ) {
-        Box(Modifier.fillMaxWidth().height(170.dp)) {
-            ThemeBackground(style, palette, Modifier.matchParentSize())
-            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.30f)))
-            Column(Modifier.matchParentSize().padding(22.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Rounded.WbSunny, null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(18.dp))
-                    Text("Élan quotidien", color = Color.White.copy(alpha = 0.9f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+// MARK: Groupes et lignes
+
+@Composable
+fun TaskGroup(title: String, tasks: List<Task>, onEdit: (Task) -> Unit, onPause: ((Task) -> Unit)?) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
+            Text("${tasks.size}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Glass(Modifier.fillMaxWidth()) {
+            Column(Modifier.animateContentSize()) {
+                tasks.forEachIndexed { i, task ->
+                    TaskRow(task, onClick = { onEdit(task) }, onPause = if (onPause != null) ({ onPause(task) }) else null)
+                    if (i < tasks.lastIndex) HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
-                Text(quote, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium, lineHeight = 24.sp, letterSpacing = (-0.2).sp)
             }
         }
     }
@@ -349,75 +290,141 @@ fun EncouragementCard() {
 fun TaskRow(task: Task, onClick: () -> Unit, onPause: (() -> Unit)?) {
     val done = task.isDone()
     val color = taskColor(task.color)
-    val badgeBg by animateColorAsState(
-        targetValue = if (done) Color(0xFF34C759).copy(alpha = 0.2f) else color.copy(alpha = 0.18f),
-        label = "badgeColor"
+    val haptic = LocalHapticFeedback.current
+    // La coche rebondit quand on la valide
+    val checkScale by animateFloatAsState(
+        if (done) 1f else 0.9f,
+        spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessMediumLow),
+        label = "check",
     )
-
+    val fill by animateColorAsState(if (done) color else Color.Transparent, label = "fill")
     Row(
-        Modifier
-            .fillMaxWidth()
-            .appleSpringPress(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().appleSpringPress(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(badgeBg)
-                .clickable { TaskStore.update(task.id) { it.toggled() } },
+            Modifier.size(30.dp).scale(checkScale)
+                .shadow(if (done) 6.dp else 0.dp, CircleShape, ambientColor = color, spotColor = color)
+                .clip(CircleShape)
+                .background(fill)
+                .border(2.dp, if (done) Color.Transparent else color.copy(alpha = 0.7f), CircleShape)
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    TaskStore.update(task.id) { it.toggled() }
+                },
             contentAlignment = Alignment.Center,
         ) {
-            if (done) {
-                Icon(Icons.Rounded.Check, null, tint = Color(0xFF34C759), modifier = Modifier.size(22.dp))
-            } else {
-                Text(task.emoji, fontSize = 22.sp)
-            }
+            if (done) Icon(Icons.Rounded.Check, "Fait", tint = Color.White, modifier = Modifier.size(17.dp))
         }
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
+        Box(
+            Modifier.size(42.dp).background(
+                Brush.linearGradient(listOf(color.copy(alpha = 0.28f), color.copy(alpha = 0.10f))), RoundedCornerShape(13.dp),
+            ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(task.emoji, fontSize = 21.sp)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                task.title,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
+                task.title, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium, fontSize = 16.sp,
                 color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                style = if (done) TextStyle(textDecoration = TextDecoration.LineThrough) else TextStyle(),
+                textDecoration = if (done) TextDecoration.LineThrough else null,
             )
-            val sub = when {
-                task.isRepeating -> task.repeatSummary()
-                task.reminderEnabled -> "Rappel à ${task.reminderText}"
-                task.dueText() != null -> task.dueText()
-                else -> null
-            }
-            sub?.let {
-                Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            DetailLine(task)
         }
-
-        if (onPause != null && !done) {
+        if (onPause != null && !done && !task.isRepeating) {
             IconButton(onClick = onPause) {
-                Icon(Icons.Rounded.Pause, "Mettre en pause", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.PauseCircleOutline, "Mettre en pause", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-fun TaskGroup(title: String, tasks: List<Task>, onEdit: (Task) -> Unit, onPause: ((Task) -> Unit)?) {
+private fun DetailLine(task: Task) {
+    val parts = mutableListOf<Triple<ImageVector, String, Color>>()
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    if (task.isPaused) parts += Triple(Icons.Rounded.Pause, "En pause", Orange)
+    if (task.isLater && !task.isDone()) parts += Triple(Icons.Rounded.Lightbulb, "Pour plus tard", Color(0xFFE0A800))
+    if (task.reminderEnabled) parts += Triple(Icons.Rounded.Notifications, task.reminderText, muted)
+    if (task.isRepeating) parts += Triple(Icons.Rounded.Repeat, task.repeatSummary(), muted)
+    else task.dueText()?.let { due ->
+        parts += if (task.isOverdue) Triple(Icons.Rounded.ErrorOutline, "En retard · $due", Color(0xFFFF3B30))
+        else Triple(Icons.Rounded.CalendarToday, due, muted)
+    }
+    // Après une pause : on garde « où j'en étais » sous les yeux
+    if (!task.isPaused && !task.isDone() && task.pauseNote.isNotBlank()) parts += Triple(Icons.Rounded.Bookmark, task.pauseNote, Orange)
+    if (parts.isEmpty()) return
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        parts.forEach { (icon, text, color) ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(3.dp))
+                Text(text, color = color, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PausedGroup(tasks: List<Task>, onEdit: (Task) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("En pause", fontSize = 21.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
+            Text("${tasks.size}", color = Orange, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.background(Orange.copy(alpha = 0.14f), CircleShape).padding(horizontal = 8.dp, vertical = 2.dp))
+        }
+        Glass(Modifier.fillMaxWidth(), accent = Orange) {
             Column {
                 tasks.forEachIndexed { i, task ->
-                    TaskRow(task, onClick = { onEdit(task) }, onPause = onPause?.let { p -> { p(task) } })
-                    if (i < tasks.lastIndex) HorizontalDivider(Modifier.padding(start = 72.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                    PausedRow(task, onClick = { onEdit(task) })
+                    if (i < tasks.lastIndex) HorizontalDivider(Modifier.padding(start = 66.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PausedRow(task: Task, onClick: () -> Unit) {
+    val color = taskColor(task.color)
+    val haptic = LocalHapticFeedback.current
+    Row(
+        Modifier.fillMaxWidth().appleSpringPress(onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(42.dp).background(color.copy(alpha = 0.16f), RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
+            Text(task.emoji, fontSize = 21.sp)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(task.title, fontWeight = FontWeight.Medium, fontSize = 16.sp, maxLines = 2)
+            if (task.pauseNote.isNotBlank()) {
+                Row(
+                    Modifier.background(Orange.copy(alpha = 0.14f), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Bookmark, null, tint = Orange, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(task.pauseNote, color = Orange, fontSize = 12.sp)
+                }
+            }
+            Text(task.resumeText() ?: task.pausedSinceText(), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        }
+        Row(
+            Modifier.align(Alignment.CenterVertically)
+                .shadow(8.dp, CircleShape, ambientColor = color, spotColor = color)
+                .clip(CircleShape).background(color)
+                .clickable {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    TaskStore.update(task.id) { it.resumed() }
+                }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.PlayArrow, null, tint = Color.White, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(3.dp))
+            Text("Reprendre", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

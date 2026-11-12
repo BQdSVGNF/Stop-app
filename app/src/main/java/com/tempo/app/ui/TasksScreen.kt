@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -59,12 +58,12 @@ fun TasksScreen(onEdit: (Task) -> Unit, onPause: (Task) -> Unit) {
     val completed = filtered.filter { !it.isRepeating && it.completedAt != null }.sortedByDescending { it.completedAt }
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 160.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 190.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Tâches", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                Text("Tâches", fontSize = 32.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
                 TextField(
                     value = search, onValueChange = { search = it },
                     placeholder = { Text("Rechercher") },
@@ -73,8 +72,8 @@ fun TasksScreen(onEdit: (Task) -> Unit, onPause: (Task) -> Unit) {
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -97,9 +96,9 @@ fun TasksScreen(onEdit: (Task) -> Unit, onPause: (Task) -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Lightbulb, null, tint = Color(0xFFE0A800), modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Pour plus tard", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("Pour plus tard", fontSize = 21.sp, fontWeight = FontWeight.Bold)
                 }
-                Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface) {
+                Glass(Modifier.fillMaxWidth()) {
                     Column {
                         later.forEachIndexed { i, task ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -136,7 +135,7 @@ fun TasksScreen(onEdit: (Task) -> Unit, onPause: (Task) -> Unit) {
                     Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.rotate(rotation))
                 }
                 if (showCompleted) {
-                    Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surface) {
+                    Glass(Modifier.fillMaxWidth()) {
                         Column {
                             completed.forEachIndexed { i, task ->
                                 TaskRow(task, onClick = { onEdit(task) }, onPause = null)

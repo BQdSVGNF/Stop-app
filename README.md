@@ -5,9 +5,10 @@ La version Android de Tempo, avec les mêmes fonctions que la version iPhone :
 - **Tâches et routines** avec emoji, couleur, date, jours de la semaine et rappel à l'heure choisie
 - **Pause ⏸** : note où tu t'es arrêté, choisis quand reprendre, et Tempo te le rappelle
 - **Noter pour plus tard 💡** : une idée te vient ? Tu la notes en 2 secondes
-- **Thèmes 🎨** : 6 styles (Dégradé, Verre cannelé, Trame, Blueprint, Topographie, ASCII) × 7 palettes, plus le mode clair ou sombre
+- **Thèmes 🎨 sur toute l'app** : 7 décors (Verre liquide, Dégradé, Verre cannelé, Trame, Blueprint, Topographie, ASCII) × 7 palettes, mode clair ou sombre, et un effet 3D qui suit l'inclinaison du téléphone
+- **Notifications** avec bouton « ✓ C'est fait », reprise automatique des pauses, et un bouton pour tester les rappels
 
-**100 % gratuit.** Pas de Play Store, pas de compte développeur, et l'app n'expire jamais.
+**100 % gratuit.** Pas de Play Store, pas de compte développeur, et l'app n'expire jamais : contrairement à l'iPhone, il n'y a rien à re-signer chaque semaine. Une fois installée, elle reste active pour toujours, et elle reprogramme ses rappels toute seule (chaque nuit, après un redémarrage, après une mise à jour).
 
 ---
 
@@ -29,15 +30,19 @@ La version Android de Tempo, avec les mêmes fonctions que la version iPhone :
 
 ## Étape 3 : régler les rappels (une fois)
 
-Dans Tempo, va dans **Réglages → Système** :
-- **Notifications** : elles doivent être « Activées ».
-- **Rappels à l'heure exacte** : appuie sur **Autoriser**, pour que tes rappels arrivent pile à l'heure.
+Dans Tempo, va dans **Réglages → Fiabilité des rappels** et mets tout au vert :
+- **Notifications** : « Activées ».
+- **Rappels à l'heure exacte** : « Activés » (automatique sur Android 13 et plus).
+- **Batterie sans restriction** : appuie sur **Autoriser**. Indispensable sur Samsung, Xiaomi, Huawei, Oppo…
+- **Ne jamais mettre en veille** : désactive « Suspendre l'activité si l'app n'est pas utilisée ».
 
-💡 Sur certains téléphones (Samsung, Xiaomi, Huawei…), l'économie de batterie peut retarder les rappels. Dans les Réglages du téléphone, va dans **Applis → Tempo → Batterie** et choisis **Non restreinte**.
+Puis appuie sur **Tester les rappels** : une notification arrive tout de suite, une autre 1 minute après (ferme l'app pour vérifier).
 
 ## Mettre à jour l'app
 
-Modifie un fichier sur GitHub, puis valide. GitHub recompile tout seul. Installe le nouvel APK par-dessus l'ancien : **tes tâches sont conservées**.
+Modifie un fichier sur GitHub, puis valide. GitHub recompile tout seul. Installe le nouvel APK par-dessus l'ancien : **tes tâches sont conservées**. (L'app est signée avec une clé fixe, `app/tempo.keystore` : ne supprime pas ce fichier, sinon Android refusera les mises à jour.)
+
+> ⚠️ Si tu avais installé une version d'avant la 1.1, désinstalle-la **une seule fois** avant d'installer la 1.1 (l'ancienne était signée avec une clé aléatoire). Ensuite, les mises à jour passeront toujours par-dessus.
 
 ---
 
