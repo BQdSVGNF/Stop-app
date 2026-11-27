@@ -357,7 +357,7 @@ namespace StopApp
             quit.Margin = new Padding(0, 16, 0, 0);
             quit.Click += (_, _) => AskQuit();
             col.Controls.Add(quit);
-            col.Controls.Add(Note("stop#app pour Windows · version 1.1"));
+            col.Controls.Add(Note("stop#app pour Windows · version 1.2"));
         }
 
         // ----- Horaires -----

@@ -96,77 +96,98 @@ namespace StopApp
             (int)(a.R + (b.R - a.R) * k), (int)(a.G + (b.G - a.G) * k), (int)(a.B + (b.B - a.B) * k));
         static Color Darken(Color a, float f) => Color.FromArgb((int)(a.R * f), (int)(a.G * f), (int)(a.B * f));
 
-        // ---------- Soft 3D : formes douces avec ombres et reflets ----------
+        // ---------- Soft 3D : formes douces avec ombres et reflets (couleurs du modèle) ----------
+
+        record Tone(Color Base, Color Light, Color Dark, Color Shadow);
+        static Color H(string hex) => ColorTranslator.FromHtml(hex);
+        static readonly Tone Violet = new(H("#9A7BF5"), H("#F4F0FF"), H("#7350E6"), H("#8C7BE0"));
+        static readonly Tone Peach = new(H("#FF9A6E"), H("#FFF3EC"), H("#FF7A45"), H("#F0A080"));
+        static readonly Tone Mint = new(H("#5BD3B2"), H("#F0FFFA"), H("#2DB38F"), H("#7FD0C0"));
+        static readonly Tone Sun = new(H("#FAD36A"), H("#FFFBEA"), H("#F2B935"), H("#E9C070"));
 
         static void Soft3D(Graphics g, int w, int h, Theme t)
         {
             var rect = new Rectangle(0, 0, w, h);
-            using (var bg = new LinearGradientBrush(rect, Color.White, Color.White, 35f))
+            using (var bg = new LinearGradientBrush(rect, Color.White, Color.White, 55f))
             {
                 bg.InterpolationColors = new ColorBlend
                 {
-                    Colors = new[] { Mix(t.C, Color.White, 0.88f), Mix(t.A, Color.White, 0.90f), Mix(t.B, Color.White, 0.92f) },
+                    Colors = new[] { H("#F3E6FF"), H("#E6ECFF"), H("#FDEFE6") },
                     Positions = new[] { 0f, 0.5f, 1f },
                 };
                 g.FillRectangle(bg, rect);
             }
             float s = Math.Min(w, h);
-            if (h < w * 0.45f)
+            if (w < 200)
+            {
+                // Petit aperçu : la composition du modèle
+                Sphere(g, w * 0.25f, h * 0.36f, s * 0.20f, Violet);
+                Blob(g, w * 0.52f, h * 0.47f, s * 0.17f, s * 0.135f, 12f, Peach);
+                Blob(g, w * 0.74f, h * 0.27f, s * 0.15f, s * 0.135f, -20f, Mint);
+                Sphere(g, w * 0.77f, h * 0.62f, s * 0.08f, Sun);
+            }
+            else if (h < w * 0.45f)
             {
                 // Bandeau (en-tête) : le texte est à gauche, les formes à droite
-                Sphere(g, w * 0.74f, h * 0.30f, s * 0.30f, t.C);
-                Blob(g, w * 0.93f, h * 0.55f, s * 0.26f, -16f, t.B);
-                Blob(g, w * 0.82f, h * 1.00f, s * 0.20f, 14f, t.A);
-                Sphere(g, w * 0.62f, h * 0.88f, s * 0.10f, ColorTranslator.FromHtml("#FFC93C"));
-                return;
+                Sphere(g, w * 0.74f, h * 0.38f, s * 0.30f, Violet);
+                Blob(g, w * 0.93f, h * 0.30f, s * 0.20f, s * 0.17f, -20f, Mint);
+                Blob(g, w * 0.86f, h * 0.98f, s * 0.19f, s * 0.15f, 12f, Peach);
+                Sphere(g, w * 0.60f, h * 0.86f, s * 0.09f, Sun);
             }
-            // Grand écran : formes dans les coins, le texte reste lisible au centre
-            Sphere(g, w * 0.07f, h * 0.14f, s * 0.24f, t.C);
-            Blob(g, w * 0.93f, h * 0.30f, s * 0.20f, -16f, t.B);
-            Blob(g, w * 0.08f, h * 0.86f, s * 0.18f, 14f, t.A);
-            Sphere(g, w * 0.90f, h * 0.92f, s * 0.11f, ColorTranslator.FromHtml("#FFC93C"));
+            else
+            {
+                // Grand écran : formes dans les coins, le texte reste lisible au centre
+                Sphere(g, w * 0.08f, h * 0.14f, s * 0.22f, Violet);
+                Blob(g, w * 0.93f, h * 0.26f, s * 0.17f, s * 0.15f, -20f, Mint);
+                Blob(g, w * 0.07f, h * 0.86f, s * 0.19f, s * 0.15f, 12f, Peach);
+                Sphere(g, w * 0.90f, h * 0.90f, s * 0.10f, Sun);
+            }
         }
 
-        /// <summary>Ombre douce : dégradé radial du gris vers transparent.</summary>
+        /// <summary>Ombre floue : dégradé de la couleur d'ombre vers transparent.</summary>
         static void SoftShadow(Graphics g, GraphicsPath shape, Color c)
         {
             using var pb = new PathGradientBrush(shape)
             {
-                CenterColor = Color.FromArgb(90, Darken(c, 0.5f)),
-                SurroundColors = new[] { Color.FromArgb(0, Darken(c, 0.5f)) },
+                CenterColor = Color.FromArgb(115, c),
+                SurroundColors = new[] { Color.FromArgb(0, c) },
             };
+            pb.FocusScales = new PointF(0.45f, 0.45f);
             g.FillPath(pb, shape);
         }
 
-        static void Shine(Graphics g, GraphicsPath shape, RectangleF box, Color c)
+        /// <summary>Reflet : lumière en haut à gauche, couleur pleine, bord plus foncé.</summary>
+        static void Shine(Graphics g, GraphicsPath shape, RectangleF box, Tone t)
         {
             using var pb = new PathGradientBrush(shape)
             {
-                CenterPoint = new PointF(box.X + box.Width * 0.32f, box.Y + box.Height * 0.28f),
-                CenterColor = Mix(c, Color.White, 0.70f),
-                SurroundColors = new[] { Darken(c, 0.85f) },
+                CenterPoint = new PointF(box.X + box.Width * 0.31f, box.Y + box.Height * 0.29f),
             };
-            pb.SetSigmaBellShape(0.9f, 1f);
+            pb.InterpolationColors = new ColorBlend
+            {
+                Colors = new[] { t.Dark, t.Base, t.Light },
+                Positions = new[] { 0f, 0.55f, 1f },
+            };
             g.FillPath(pb, shape);
         }
 
-        static void Sphere(Graphics g, float cx, float cy, float r, Color c)
+        static void Sphere(Graphics g, float cx, float cy, float r, Tone t)
         {
             using (var sh = new GraphicsPath())
             {
-                sh.AddEllipse(cx - r * 1.15f + r * 0.1f, cy - r * 1.0f + r * 0.35f, r * 2.3f, r * 2.2f);
-                SoftShadow(g, sh, c);
+                sh.AddEllipse(cx - r * 1.2f, cy + r * 0.35f - r * 1.2f, r * 2.4f, r * 2.4f);
+                SoftShadow(g, sh, t.Shadow);
             }
             var box = new RectangleF(cx - r, cy - r, r * 2, r * 2);
             using var p = new GraphicsPath();
             p.AddEllipse(box);
-            Shine(g, p, box, c);
+            Shine(g, p, box, t);
         }
 
         static GraphicsPath RoundRect(RectangleF r, float rad)
         {
             var p = new GraphicsPath();
-            float d = rad * 2;
+            float d = Math.Min(rad * 2, Math.Min(r.Width, r.Height));
             p.AddArc(r.X, r.Y, d, d, 180, 90);
             p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
             p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
@@ -175,16 +196,16 @@ namespace StopApp
             return p;
         }
 
-        static void Blob(Graphics g, float cx, float cy, float r, float angle, Color c)
+        static void Blob(Graphics g, float cx, float cy, float rw, float rh, float angle, Tone t)
         {
             var state = g.Save();
             g.TranslateTransform(cx, cy);
             g.RotateTransform(angle);
-            using (var sh = RoundRect(new RectangleF(-r * 1.2f + r * 0.08f, -r * 1.0f + r * 0.35f, r * 2.4f, r * 2.0f), r * 0.75f))
-                SoftShadow(g, sh, c);
-            var box = new RectangleF(-r, -r * 0.82f, r * 2, r * 1.64f);
-            using (var p = RoundRect(box, r * 0.55f))
-                Shine(g, p, box, c);
+            using (var sh = RoundRect(new RectangleF(-rw * 1.3f, -rh * 1.3f + rh * 0.35f, rw * 2.6f, rh * 2.6f), rh * 1.1f))
+                SoftShadow(g, sh, t.Shadow);
+            var box = new RectangleF(-rw, -rh, rw * 2, rh * 2);
+            using (var p = RoundRect(box, rh * 0.72f))
+                Shine(g, p, box, t);
             g.Restore(state);
         }
 
@@ -192,8 +213,9 @@ namespace StopApp
 
         static void Contour(Graphics g, int w, int h, Theme t)
         {
-            g.Clear(Mix(t.A, Color.Black, 0.80f));
-            var line = Mix(t.C, Color.White, 0.45f);
+            // Couleurs du modèle : vert forêt profond et lignes vert citron
+            g.Clear(H("#0F2A21"));
+            var line = H("#B9E772");
             float step = 8f;
             int gw = (int)(w / step) + 2, gh = (int)(h / step) + 2;
             var f = new float[gh, gw];
@@ -219,8 +241,8 @@ namespace StopApp
                     f[j, i] = v;
                     lo = Math.Min(lo, v); hi = Math.Max(hi, v);
                 }
-            const int levels = 34;
-            using var thin = new Pen(Color.FromArgb(110, line), 1f);
+            const int levels = 40;
+            using var thin = new Pen(Color.FromArgb(95, line), 1f);
             using var bold = new Pen(Color.FromArgb(220, line), 1.6f);
             var pts = new List<PointF>(4);
             for (int k = 1; k < levels; k++)
