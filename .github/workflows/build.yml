@@ -7,22 +7,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: unzip -o *.zip
+      - run: unzip -o stop-app.zip
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: "17"}
       - uses: gradle/actions/setup-gradle@v4
         with: {gradle-version: "8.9"}
-      - run: gradle assembleDebug
+      - name: Compiler
+        shell: bash
         working-directory: stop-app
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon 2>&1 | tee ../build-android.log
       - run: cp stop-app/app/build/outputs/apk/debug/app-debug.apk stop-app.apk
       - uses: actions/upload-artifact@v4
         with:
           name: stop-app-apk
           path: stop-app.apk
-      # Lien de téléchargement direct (toujours la dernière version)
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: stop#app (dernière version)
           make_latest: true
           files: stop-app.apk
+      # En cas d'erreur : le journal de compilation est publié pour pouvoir le lire
+      - if: failure()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: buildlog-android
+          name: Journal de compilation Android
+          prerelease: true
+          files: build-android.log
