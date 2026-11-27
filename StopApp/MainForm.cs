@@ -42,7 +42,7 @@ namespace StopApp
         DateTimePicker dtFrom, dtTo, dtVacStart, dtVacEnd;
         TextBox txtSite, txtApp;
         Label lblVac, lblAppsLock, lblSitesLock, lblTimesLock;
-        FlowLayoutPanel themeBox;
+        FlowLayoutPanel themeBox, styleBox;
 
         public MainForm(bool hidden)
         {
@@ -232,6 +232,7 @@ namespace StopApp
             Controls.Add(host);
             Controls.Add(nav);
             Controls.Add(header);
+            Look.ApplyFore(header);
             ShowPage(0);
         }
 
@@ -356,7 +357,7 @@ namespace StopApp
             quit.Margin = new Padding(0, 16, 0, 0);
             quit.Click += (_, _) => AskQuit();
             col.Controls.Add(quit);
-            col.Controls.Add(Note("stop#app pour Windows · version 1.0"));
+            col.Controls.Add(Note("stop#app pour Windows · version 1.1"));
         }
 
         // ----- Horaires -----
@@ -559,7 +560,11 @@ namespace StopApp
         void BuildThemes(Panel page)
         {
             var col = Column(page);
-            var card = CardBox(col, "🎨 Apparence", "Les couleurs de l'en-tête, de l'écran de blocage et du questionnaire.");
+            var card = CardBox(col, "🎨 Apparence", "Le design et les couleurs de l'en-tête, de l'écran de blocage et du questionnaire.");
+            card.Controls.Add(new Label { Text = "Design", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold), ForeColor = InkSoft, Margin = new Padding(0, 4, 0, 6) });
+            styleBox = new FlowLayoutPanel { AutoSize = true, Width = 460, WrapContents = true };
+            card.Controls.Add(styleBox);
+            card.Controls.Add(new Label { Text = "Couleurs", AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold), ForeColor = InkSoft, Margin = new Padding(0, 10, 0, 6) });
             themeBox = new FlowLayoutPanel { AutoSize = true, Width = 460, WrapContents = true };
             card.Controls.Add(themeBox);
             FillThemes();
@@ -567,6 +572,36 @@ namespace StopApp
 
         void FillThemes()
         {
+            // ----- Designs : aperçus à cliquer -----
+            foreach (Control old in styleBox.Controls) (old as PictureBox)?.Image?.Dispose();
+            styleBox.Controls.Clear();
+            foreach (var (style, label) in Look.Styles)
+            {
+                var st = style;
+                var pic = new PictureBox
+                {
+                    Width = 140, Height = 84, Margin = new Padding(0, 0, 10, 10), Cursor = Cursors.Hand,
+                    Image = Art.Preview(140, 84, Theme.Current, st),
+                };
+                pic.Paint += (_, e) =>
+                {
+                    var fore = st == ArtStyle.SOFT3D ? Look.Ink : Color.White;
+                    TextRenderer.DrawText(e.Graphics, label, new Font("Segoe UI", 10.5f, FontStyle.Bold), new Rectangle(10, 54, 130, 26), fore, TextFormatFlags.Left);
+                    if (st == Look.Current)
+                    {
+                        using var pen = new Pen(Ink, 4);
+                        e.Graphics.DrawRectangle(pen, 2, 2, pic.Width - 4, pic.Height - 4);
+                        TextRenderer.DrawText(e.Graphics, "✓", new Font("Segoe UI", 14, FontStyle.Bold), new Point(pic.Width - 30, 6), fore);
+                    }
+                };
+                pic.Click += (_, _) =>
+                {
+                    Store.D.Style = st.ToString(); Store.Save();
+                    ApplyLook();
+                };
+                styleBox.Controls.Add(pic);
+            }
+
             themeBox.Controls.Clear();
             foreach (var t in Theme.All)
             {
@@ -574,7 +609,7 @@ namespace StopApp
                 var theme = t;
                 sw.Paint += (_, e) =>
                 {
-                    theme.Paint(e.Graphics, sw.ClientRectangle);
+                    theme.PaintGradient(e.Graphics, sw.ClientRectangle);
                     TextRenderer.DrawText(e.Graphics, theme.Name, new Font("Segoe UI", 11, FontStyle.Bold), new Rectangle(10, 50, 130, 30), Color.White, TextFormatFlags.Left);
                     if (theme.Id == Theme.Current.Id)
                     {
@@ -586,13 +621,21 @@ namespace StopApp
                 sw.Click += (_, _) =>
                 {
                     Store.D.Theme = theme.Id; Store.Save();
-                    header.Invalidate(true);
-                    blocked.Invalidate(true);
-                    ShowPage(4);
-                    FillThemes();
+                    ApplyLook();
                 };
                 themeBox.Controls.Add(sw);
             }
+        }
+
+        /// <summary>Applique le design et les couleurs choisis partout.</summary>
+        void ApplyLook()
+        {
+            Look.ApplyFore(header);
+            header.Invalidate(true);
+            Look.ApplyFore(blocked);
+            blocked.Invalidate(true);
+            ShowPage(4);
+            FillThemes();
         }
 
         // =====================================================================

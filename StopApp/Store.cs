@@ -29,6 +29,7 @@ namespace StopApp
         public List<string> ActiveDays { get; set; } = new();
 
         public string Theme { get; set; } = "corail";
+        public string Style { get; set; } = "GRADIENT";
     }
 
     public static class Store

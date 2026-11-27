@@ -27,8 +27,11 @@ namespace StopApp
 
         public static Theme Current => All.FirstOrDefault(t => t.Id == Store.D.Theme) ?? All[0];
 
-        /// <summary>Peint le dégradé du thème dans un rectangle.</summary>
-        public void Paint(Graphics g, Rectangle r)
+        /// <summary>Peint le design choisi aux couleurs du thème.</summary>
+        public void Paint(Graphics g, Rectangle r) => Art.Draw(g, r, this, Look.Current);
+
+        /// <summary>Peint le simple dégradé du thème.</summary>
+        public void PaintGradient(Graphics g, Rectangle r)
         {
             if (r.Width <= 0 || r.Height <= 0) return;
             using var br = new LinearGradientBrush(r, A, C, 35f);

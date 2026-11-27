@@ -112,6 +112,7 @@ namespace StopApp
                 ? "Fin du Focus dans " + Rules.Duration(Store.D.FocusUntil - DateTime.Now)
                 : Rules.NextFreeStart(DateTime.Now) is DateTime n ? "Prochaine pause à " + n.ToString("HH:mm") : "";
             count.Text = $"{reason} · Tu as résisté {Store.D.BlocksToday} fois aujourd'hui" + (next != "" ? "\n" + next : "");
+            Look.ApplyFore(this);
             Invalidate(true);
             if (!Visible) Show();
             WindowState = FormWindowState.Maximized;

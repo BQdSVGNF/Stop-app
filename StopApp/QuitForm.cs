@@ -49,6 +49,7 @@ namespace StopApp
             col.Controls.Add(sub, 0, 2);
             col.Controls.Add(options, 0, 3);
             Controls.Add(col);
+            Look.ApplyFore(this);
 
             timer.Tick += (_, _) =>
             {
