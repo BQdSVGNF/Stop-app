@@ -5,12 +5,13 @@ using System.Runtime.CompilerServices;
 namespace StopApp
 {
     /// <summary>Les designs de fond (les mêmes que sur le téléphone).</summary>
-    public enum ArtStyle { GRADIENT, SOFT3D, CONTOUR, HALFTONE, BLUEPRINT }
+    public enum ArtStyle { MINIMAL, GRADIENT, SOFT3D, CONTOUR, HALFTONE, BLUEPRINT }
 
     public static class Look
     {
         public static readonly (ArtStyle style, string label)[] Styles =
         {
+            (ArtStyle.MINIMAL, "Minimal"),
             (ArtStyle.GRADIENT, "Dégradé"),
             (ArtStyle.SOFT3D, "Soft 3D"),
             (ArtStyle.CONTOUR, "Lignes de niveau"),
@@ -18,11 +19,18 @@ namespace StopApp
             (ArtStyle.BLUEPRINT, "Blueprint"),
         };
 
-        public static ArtStyle Current =>
-            Enum.TryParse<ArtStyle>(Store.D.Style, out var s) ? s : ArtStyle.GRADIENT;
+        public static ArtStyle Current
+        {
+            get
+            {
+                // Nouveau style par défaut : Minimal (une seule fois, ensuite le choix compte)
+                if (!Store.D.MinimalV1) { Store.D.MinimalV1 = true; Store.D.Style = "MINIMAL"; Store.Save(); }
+                return Enum.TryParse<ArtStyle>(Store.D.Style, out var s) ? s : ArtStyle.MINIMAL;
+            }
+        }
 
         /// <summary>Design clair : les textes passent en foncé.</summary>
-        public static bool Light => Current == ArtStyle.SOFT3D;
+        public static bool Light => Current == ArtStyle.SOFT3D || Current == ArtStyle.MINIMAL;
 
         public static readonly Color Ink = ColorTranslator.FromHtml("#1E1B2E");
 
@@ -54,6 +62,7 @@ namespace StopApp
         {
             if (r.Width <= 0 || r.Height <= 0) return;
             if (style == ArtStyle.GRADIENT) { t.PaintGradient(g, r); return; }
+            if (style == ArtStyle.MINIMAL) { using var b = new SolidBrush(ColorTranslator.FromHtml("#F2F2F7")); g.FillRectangle(b, r); return; }
             var key = $"{style}|{t.Id}|{r.Width}x{r.Height}";
             if (!cache.TryGetValue(key, out var bmp))
             {
@@ -67,11 +76,17 @@ namespace StopApp
         /// <summary>Petit aperçu (pas mis en cache partagé).</summary>
         public static Bitmap Preview(int w, int h, Theme t, ArtStyle style)
         {
-            if (style == ArtStyle.GRADIENT)
+            if (style == ArtStyle.GRADIENT || style == ArtStyle.MINIMAL)
             {
                 var b = new Bitmap(w, h);
                 using var g = Graphics.FromImage(b);
-                t.PaintGradient(g, new Rectangle(0, 0, w, h));
+                Draw(g, new Rectangle(0, 0, w, h), t, style);
+                if (style == ArtStyle.MINIMAL)
+                {
+                    // Aperçu : une petite carte blanche
+                    using var card = new SolidBrush(Color.White);
+                    g.FillRectangle(card, 12, 12, w - 24, h / 2 - 6);
+                }
                 return b;
             }
             return Render(w, h, t, style);

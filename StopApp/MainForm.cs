@@ -13,6 +13,7 @@ namespace StopApp
         static Color Bg => Full ? Color.Transparent : ClassicBg;
         static Color Card => !Full ? Color.White : Look.Current switch
         {
+            ArtStyle.MINIMAL => Color.White,
             ArtStyle.SOFT3D => Color.FromArgb(215, 255, 255, 255),
             ArtStyle.CONTOUR => Color.FromArgb(235, 15, 42, 33),
             ArtStyle.BLUEPRINT => Color.FromArgb(235, 16, 32, 51),
@@ -371,7 +372,7 @@ namespace StopApp
             quit.Margin = new Padding(0, 16, 0, 0);
             quit.Click += (_, _) => AskQuit();
             col.Controls.Add(quit);
-            col.Controls.Add(Note("stop#app pour Windows · version 1.3"));
+            col.Controls.Add(Note("stop#app pour Windows · version 1.4"));
         }
 
         // ----- Horaires -----
@@ -599,7 +600,7 @@ namespace StopApp
                 };
                 pic.Paint += (_, e) =>
                 {
-                    var fore = st == ArtStyle.SOFT3D ? Look.Ink : Color.White;
+                    var fore = (st == ArtStyle.SOFT3D || st == ArtStyle.MINIMAL) ? Look.Ink : Color.White;
                     TextRenderer.DrawText(e.Graphics, label, new Font("Segoe UI", 10.5f, FontStyle.Bold), new Rectangle(10, 54, 130, 26), fore, TextFormatFlags.Left);
                     if (st == Look.Current)
                     {
