@@ -1,0 +1,40 @@
+name: stop#app Windows
+on:
+  push:
+    branches: [windows]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: {dotnet-version: "8.0.x"}
+      - name: Compiler
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet publish StopApp/StopApp.csproj -c Release -o out 2>&1 | tee build-windows.log
+      - name: Préparer le zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force stop-app-windows | Out-Null
+          Copy-Item out/StopApp.exe stop-app-windows/
+          Copy-Item LISEZ-MOI.txt stop-app-windows/
+          Compress-Archive -Path stop-app-windows -DestinationPath stop-app-windows.zip -Force
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows
+          name: stop#app pour Windows (dernière version)
+          target_commitish: windows
+          make_latest: false
+          files: stop-app-windows.zip
+      - if: failure()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: buildlog-windows
+          name: Journal de compilation Windows
+          prerelease: true
+          files: build-windows.log

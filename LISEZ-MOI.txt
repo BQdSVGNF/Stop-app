@@ -1,0 +1,25 @@
+stop#app pour Windows
+=====================
+
+INSTALLER
+1. Dézippe le dossier, puis double-clique sur StopApp.exe.
+2. Windows affiche « Windows a protégé votre ordinateur » : clique sur
+   « Informations complémentaires », puis « Exécuter quand même ».
+   (C'est normal pour une appli perso qui ne vient pas d'un éditeur connu.)
+3. Accepte la demande d'administrateur : stop#app en a besoin pour bloquer
+   les sites dans tous les navigateurs et fermer les applis bloquées.
+4. stop#app s'installe tout seul dans C:\Program Files\stopapp, ajoute un
+   raccourci sur le Bureau et démarre avec Windows. Tu peux supprimer le .zip.
+
+UTILISER
+- Applis : ajoute les programmes à bloquer (Discord, Steam, jeux…).
+- Sites : ajoute les sites à bloquer (tiktok.com, instagram.com…).
+- Horaires : mêmes créneaux libres que sur ton téléphone (modifiables).
+- Accueil : « Démarrer la protection ».
+- La croix ne ferme pas stop#app : il reste près de l'horloge.
+
+METTRE À JOUR
+Lance simplement le nouveau StopApp.exe : il remplace l'ancien et garde tes réglages.
+
+DÉSINSTALLER
+Accueil → « Fermer ou désinstaller stop#app… » → questionnaire → Désinstaller.
