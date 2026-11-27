@@ -136,11 +136,11 @@ namespace StopApp
             }
             else
             {
-                // Grand écran : formes dans les coins, le texte reste lisible au centre
-                Sphere(g, w * 0.08f, h * 0.14f, s * 0.22f, Violet);
-                Blob(g, w * 0.93f, h * 0.26f, s * 0.17f, s * 0.15f, -20f, Mint);
-                Blob(g, w * 0.07f, h * 0.86f, s * 0.19f, s * 0.15f, 12f, Peach);
-                Sphere(g, w * 0.90f, h * 0.90f, s * 0.10f, Sun);
+                // Fenêtre entière : formes à moitié sorties sur les bords, le texte reste lisible
+                Sphere(g, w * 1.00f, h * 0.10f, s * 0.26f, Violet);
+                Blob(g, w * 0.00f, h * 0.45f, s * 0.17f, s * 0.15f, -20f, Mint);
+                Blob(g, w * 1.00f, h * 0.72f, s * 0.19f, s * 0.15f, 12f, Peach);
+                Sphere(g, w * 0.08f, h * 0.94f, s * 0.11f, Sun);
             }
         }
 

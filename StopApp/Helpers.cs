@@ -52,7 +52,14 @@ namespace StopApp
             DoubleBuffered = true;
             SetStyle(ControlStyles.ResizeRedraw | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
         }
-        protected override void OnPaintBackground(PaintEventArgs e) => Theme.Current.Paint(e.Graphics, ClientRectangle);
+        /// <summary>Design sur toute la fenêtre : l'en-tête laisse voir le fond de la fenêtre.</summary>
+        public bool SeeThrough { get; set; }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            if (SeeThrough) { base.OnPaintBackground(e); return; }
+            Theme.Current.Paint(e.Graphics, ClientRectangle);
+        }
     }
 
     public static class Texts

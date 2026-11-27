@@ -6,10 +6,21 @@ namespace StopApp
     public class MainForm : Form
     {
         // ---------- Couleurs ----------
-        static readonly Color Bg = ColorTranslator.FromHtml("#F5F3FB");
-        static readonly Color Card = Color.White;
-        static readonly Color Ink = ColorTranslator.FromHtml("#1E1B2E");
-        static readonly Color InkSoft = ColorTranslator.FromHtml("#6B6880");
+        // Le design choisi couvre toute la fenêtre (« Dégradé » garde le style classique clair)
+        static bool Full => Look.Current != ArtStyle.GRADIENT;
+        static bool DarkDesign => Full && !Look.Light;
+        static readonly Color ClassicBg = ColorTranslator.FromHtml("#F5F3FB");
+        static Color Bg => Full ? Color.Transparent : ClassicBg;
+        static Color Card => !Full ? Color.White : Look.Current switch
+        {
+            ArtStyle.SOFT3D => Color.FromArgb(215, 255, 255, 255),
+            ArtStyle.CONTOUR => Color.FromArgb(235, 15, 42, 33),
+            ArtStyle.BLUEPRINT => Color.FromArgb(235, 16, 32, 51),
+            _ => Color.FromArgb(140, 0, 0, 0),
+        };
+        static Color Ink => DarkDesign ? Color.White : ColorTranslator.FromHtml("#1E1B2E");
+        static Color InkSoft => DarkDesign ? ColorTranslator.FromHtml("#C8CCD8") : ColorTranslator.FromHtml("#6B6880");
+        static readonly Color BtnInk = ColorTranslator.FromHtml("#1E1B2E");
         static readonly Color Soft = ColorTranslator.FromHtml("#ECEAFF");
 
         /// <summary>Processus jamais fermés (Windows lui-même, stop#app…).</summary>
@@ -52,7 +63,7 @@ namespace StopApp
             ClientSize = new Size(560, 780);
             MinimumSize = new Size(520, 640);
             StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Bg;
+            BackColor = ClassicBg;
             Font = new Font("Segoe UI", 10);
             DoubleBuffered = true;
 
@@ -190,7 +201,7 @@ namespace StopApp
         void BuildUi()
         {
             // ----- En-tête dégradé -----
-            header = new GradientPanel { Dock = DockStyle.Top, Height = 170, Padding = new Padding(26, 20, 26, 16) };
+            header = new GradientPanel { Dock = DockStyle.Top, Height = 170, Padding = new Padding(26, 20, 26, 16), SeeThrough = Full, BackColor = Full ? Color.Transparent : ClassicBg };
             lblHello = new Label { AutoSize = true, ForeColor = Color.FromArgb(235, 255, 255, 255), BackColor = Color.Transparent, Font = new Font("Segoe UI", 11), Location = new Point(26, 18) };
             var brand = new Label { Text = "stop#app", AutoSize = true, ForeColor = Color.White, BackColor = Color.Transparent, Font = new Font("Segoe UI", 11, FontStyle.Bold), Anchor = AnchorStyles.Top | AnchorStyles.Right };
             lblStatus = new Label { AutoSize = true, ForeColor = Color.White, BackColor = Color.Transparent, Font = new Font("Segoe UI Emoji", 22, FontStyle.Bold), Location = new Point(24, 52) };
@@ -221,6 +232,9 @@ namespace StopApp
             for (int i = 0; i < pages.Length; i++)
             {
                 pages[i] = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Bg, Padding = new Padding(18, 6, 18, 18), Visible = i == 0 };
+                // Le fond du design reste fixe : on redessine quand on fait défiler
+                pages[i].Scroll += (o, _) => ((Control)o).Invalidate(true);
+                pages[i].MouseWheel += (o, _) => ((Control)o).Invalidate(true);
                 host.Controls.Add(pages[i]);
             }
             BuildHome(pages[0]);
@@ -242,7 +256,7 @@ namespace StopApp
             {
                 pages[i].Visible = i == idx;
                 navButtons[i].BackColor = i == idx ? Theme.Current.Accent : Soft;
-                navButtons[i].ForeColor = i == idx ? Color.White : Ink;
+                navButtons[i].ForeColor = i == idx ? Color.White : BtnInk;
             }
             RefreshUi(true);
         }
@@ -287,7 +301,7 @@ namespace StopApp
         {
             bool primary = (string)b.Tag == "primary";
             b.BackColor = !b.Enabled ? ColorTranslator.FromHtml("#E4E2EC") : primary ? Theme.Current.Accent : Soft;
-            b.ForeColor = !b.Enabled ? InkSoft : primary ? Color.White : Ink;
+            b.ForeColor = !b.Enabled ? ColorTranslator.FromHtml("#6B6880") : primary ? Color.White : BtnInk;
         }
 
         Label Note(string text = "")
@@ -357,7 +371,7 @@ namespace StopApp
             quit.Margin = new Padding(0, 16, 0, 0);
             quit.Click += (_, _) => AskQuit();
             col.Controls.Add(quit);
-            col.Controls.Add(Note("stop#app pour Windows · version 1.2"));
+            col.Controls.Add(Note("stop#app pour Windows · version 1.3"));
         }
 
         // ----- Horaires -----
@@ -371,7 +385,7 @@ namespace StopApp
             cboDay.SelectedIndex = Rules.IsVacation(DateTime.Now) ? 2 : Rules.IsWeekend(DateTime.Now) ? 1 : 0;
             cboDay.SelectedIndexChanged += (_, _) => FillWindows();
             card.Controls.Add(cboDay);
-            lstWindows = new ListBox { Width = 460, Height = 110, Font = new Font("Segoe UI", 11), Margin = new Padding(0, 8, 0, 0), BorderStyle = BorderStyle.FixedSingle };
+            lstWindows = new ListBox { Width = 460, Height = 110, Font = new Font("Segoe UI", 11), Margin = new Padding(0, 8, 0, 0), BorderStyle = BorderStyle.FixedSingle, BackColor = DarkDesign ? Color.FromArgb(20, 30, 28) : Color.White, ForeColor = Ink };
             card.Controls.Add(lstWindows);
 
             var row = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 8, 0, 0) };
@@ -454,7 +468,7 @@ namespace StopApp
         {
             var col = Column(page);
             var card = CardBox(col, "🧩 Applis bloquées", "Pendant le blocage, ces programmes sont fermés dès qu'ils s'ouvrent. Ajouter une appli est toujours possible ; en retirer une demande une pause ou le mode modification.");
-            lstApps = new ListBox { Width = 460, Height = 170, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.FixedSingle };
+            lstApps = new ListBox { Width = 460, Height = 170, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.FixedSingle, BackColor = DarkDesign ? Color.FromArgb(20, 30, 28) : Color.White, ForeColor = Ink };
             card.Controls.Add(lstApps);
             var pick = Btn("➕ Choisir parmi les programmes ouverts");
             pick.Click += (_, _) => PickRunningApp();
@@ -527,7 +541,7 @@ namespace StopApp
         {
             var col = Column(page);
             var card = CardBox(col, "🌐 Sites bloqués", "Bloqués dans tous les navigateurs (Chrome, Edge, Firefox…) pendant le blocage. Ajouter est toujours possible ; retirer demande une pause ou le mode modification.");
-            lstSites = new ListBox { Width = 460, Height = 170, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.FixedSingle };
+            lstSites = new ListBox { Width = 460, Height = 170, Font = new Font("Segoe UI", 11), BorderStyle = BorderStyle.FixedSingle, BackColor = DarkDesign ? Color.FromArgb(20, 30, 28) : Color.White, ForeColor = Ink };
             card.Controls.Add(lstSites);
             var row = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 8, 0, 0) };
             txtSite = new TextBox { Width = 300, Font = new Font("Segoe UI", 11), PlaceholderText = "ex. tiktok.com" };
@@ -597,7 +611,7 @@ namespace StopApp
                 pic.Click += (_, _) =>
                 {
                     Store.D.Style = st.ToString(); Store.Save();
-                    ApplyLook();
+                    BeginInvoke(new Action(ApplyLook));   // après le clic (le bouton va être recréé)
                 };
                 styleBox.Controls.Add(pic);
             }
@@ -621,7 +635,7 @@ namespace StopApp
                 sw.Click += (_, _) =>
                 {
                     Store.D.Theme = theme.Id; Store.Save();
-                    ApplyLook();
+                    BeginInvoke(new Action(ApplyLook));   // après le clic (le bouton va être recréé)
                 };
                 themeBox.Controls.Add(sw);
             }
@@ -630,12 +644,30 @@ namespace StopApp
         /// <summary>Applique le design et les couleurs choisis partout.</summary>
         void ApplyLook()
         {
-            Look.ApplyFore(header);
-            header.Invalidate(true);
+            // Toute la fenêtre est reconstruite dans le nouveau design
+            SuspendLayout();
+            var old = Controls.Cast<Control>().ToList();
+            Controls.Clear();
+            foreach (var c in old) c.Dispose();
+            BuildUi();
+            ResumeLayout(true);
             Look.ApplyFore(blocked);
             blocked.Invalidate(true);
             ShowPage(4);
-            FillThemes();
+            RefreshUi(true);
+            Invalidate(true);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            if (Full) Theme.Current.Paint(e.Graphics, ClientRectangle);
+            else base.OnPaintBackground(e);
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            Invalidate(true);
         }
 
         // =====================================================================
